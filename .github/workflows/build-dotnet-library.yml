@@ -2,11 +2,6 @@ name: 'build-dotnet-library'
 
 on:
   workflow_call:
-    secrets:
-      CODECOV_TOKEN:
-        required: true
-      NUGET_KEY:
-        required: true
 
 jobs:
   build-test-publish:
@@ -24,15 +19,15 @@ jobs:
       - name: Run Tests
         run: dotnet test --collect:"XPlat Code Coverage"
       - name: Upload coverage reports to Codecov
-        if: ${{ !cancelled() && secrets.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Build the package for nuget
         run: dotnet pack --include-source --configuration Release --output . -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ github.sha }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
       - name: Publish to NuGet
-        if: ${{ github.event_name == 'push' && hashFiles('*.nupkg') != ''  && secrets.NUGET_KEY != '' }}
+        if: ${{ github.event_name == 'push' && hashFiles('*.nupkg') != '' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
       - name: Publish to GitHub
-        if: ${{ github.event_name == 'push' &&  hashFiles('*.nupkg') != ''  && secrets.GITHUB_TOKEN != '' }}
+        if: ${{ github.event_name == 'push' &&  hashFiles('*.nupkg') != '' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
