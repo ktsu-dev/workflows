@@ -7,8 +7,6 @@ on:
         required: true
       NUGET_KEY:
         required: true
-      GITHUB_TOKEN:
-        required: true
 
 jobs:
   build-test-publish:
