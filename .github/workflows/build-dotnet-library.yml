@@ -2,6 +2,13 @@ name: 'build-dotnet-library'
 
 on:
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+      NUGET_KEY:
+        required: true
+      GITHUB_TOKEN:
+        required: true
 
 jobs:
   build-test-publish:
