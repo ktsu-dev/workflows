@@ -1,12 +1,12 @@
 name: 'build-dotnet-library'
-run-name: "${{ github.repository }}: ${{ github.event.head_commit.message }}"
+run-name: "${{ github.repository }} build-dotnet-library"
 
 on:
   workflow_call:
 
 jobs:
   build-test-publish:
-    name: "${{ github.repository }}: ${{ github.event.head_commit.message }}"
+    name: "${{ github.repository }} build-dotnet-library"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,11 +25,15 @@ jobs:
         uses: codecov/codecov-action@v4.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env: 
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - name: Build the package for nuget
         run: dotnet pack --include-source --configuration Release --output . -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ github.sha }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
       - name: Publish to NuGet
-        if: ${{ github.event_name == 'push' && hashFiles('*.nupkg') != '' }}
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && hashFiles('*.nupkg') != '' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
       - name: Publish to GitHub
-        if: ${{ github.event_name == 'push' &&  hashFiles('*.nupkg') != '' }}
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' &&  hashFiles('*.nupkg') != '' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
