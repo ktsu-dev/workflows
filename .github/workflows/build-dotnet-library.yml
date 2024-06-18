@@ -73,7 +73,8 @@ jobs:
         uses: juliangruber/read-file-action@v1
         with:
           path: ./VERSION
-      - uses: ncipollo/release-action@v1
+      - name: Release
+        uses: ncipollo/release-action@v1
         with:
           artifacts: "*.*nupkg"
           tag: v${{ steps.version.outputs.content }}
