@@ -79,6 +79,7 @@ jobs:
         with:
           artifacts: "*.*nupkg"
           tag: v${{ steps.version.outputs.content }}
+          allowUpdates: "false"
           skipIfReleaseExists: "true"
           omitBody: "true"
           generateReleaseNotes: "true"
