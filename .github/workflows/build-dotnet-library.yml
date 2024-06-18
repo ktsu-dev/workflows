@@ -73,6 +73,7 @@ jobs:
         uses: juliangruber/read-file-action@v1
         with:
           path: ./VERSION
+          trim: "true"
       - name: Release
         uses: ncipollo/release-action@v1
         with:
