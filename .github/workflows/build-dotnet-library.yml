@@ -84,3 +84,4 @@ jobs:
           skipIfReleaseExists: true
           omitBody: true
           generateReleaseNotes: true
+          replacesArtifacts: false
