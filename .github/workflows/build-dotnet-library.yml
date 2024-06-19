@@ -85,3 +85,4 @@ jobs:
           omitBody: true
           generateReleaseNotes: true
           replacesArtifacts: false
+          makeLatest: true
