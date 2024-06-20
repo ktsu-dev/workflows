@@ -78,6 +78,7 @@ jobs:
           path: ./VERSION
           trim: true
       - name: Release
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
         uses: ncipollo/release-action@v1
         with:
           artifacts: "*.*nupkg"
