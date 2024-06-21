@@ -33,9 +33,7 @@ jobs:
           scoop install nsis
       - name: Install SonarCloud scanner
         shell: powershell
-        run: |
-          New-Item -Path .\.sonar\scanner -ItemType Directory
-          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+        run: dotnet tool update dotnet-sonarscanner
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -47,10 +45,10 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"${{ github.event.organization.login }}_${{ github.event.repository.name }}" /o:"ktsu-io" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
+          dotnet-sonarscanner begin /k:"${{ github.event.organization.login }}_${{ github.event.repository.name }}" /o:"ktsu-io" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
           dotnet build --no-incremental -r ${{ matrix.platform }}-${{ matrix.arch }}
           dotnet-coverage collect "dotnet test" -f xml -o "coverage.xml"
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
       - name: Build ${{ matrix.platform }}-${{ matrix.arch }} executable
         run: dotnet publish -o ./publish-${{ matrix.platform }}-${{ matrix.arch }} --self-contained -r ${{ matrix.platform }}-${{ matrix.arch }} -f net.8.0
       - name: Build NSIS installer
