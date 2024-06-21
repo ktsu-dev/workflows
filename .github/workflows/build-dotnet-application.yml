@@ -34,8 +34,7 @@ jobs:
           dotnet-quality: ga
 
       - name: Ensure tools directory exists
-        shell: powershell
-        run: New-Item -Path ${{ env.DOTNET_TOOLS_PATH }} -ItemType Directory -Force
+        run: mkdir -p ${{ env.DOTNET_TOOLS_PATH }} 
 
       - name: Cache dotnet tools
         id: cache-dotnet-tools
@@ -73,7 +72,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: powershell
         run: |
           ${{ env.DOTNET_TOOLS_PATH }}/dotnet-sonarscanner begin /k:"${{ github.event.organization.login }}_${{ github.event.repository.name }}" /o:"ktsu-io" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
           dotnet build --no-incremental -r ${{ matrix.build-config.platform }}-${{ matrix.arch }} -f net.8.0
