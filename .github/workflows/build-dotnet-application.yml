@@ -18,9 +18,19 @@ jobs:
           java-version: 21
           distribution: zulu
 
+  setup-curl:
+    runs-on: ubuntu-latest
+    container: debian:sid
+    steps:
+      - name: Install curl
+        run: |
+          apt-get -y update
+          apt-get -y install curl
+
   setup-dotnet:
     runs-on: ubuntu-latest
     container: debian:sid
+    needs: setup-curl
     steps:
       - name: Install .NET Core SDK
         uses: actions/setup-dotnet@v4
