@@ -46,15 +46,15 @@ jobs:
 
       - name: Install dotnet-script
         if: steps.cache-dotnet-tools.outputs.cache-hit != 'true'
-        run: dotnet tool update -g dotnet-script --tool-path ${{ env.DOTNET_TOOLS_PATH }}
+        run: dotnet tool update dotnet-script --tool-path ${{ env.DOTNET_TOOLS_PATH }}
 
       - name: Install dotnet-coverage
         if: steps.cache-dotnet-tools.outputs.cache-hit != 'true'
-        run: dotnet tool update -g dotnet-coverage --tool-path ${{ env.DOTNET_TOOLS_PATH }}
+        run: dotnet tool update dotnet-coverage --tool-path ${{ env.DOTNET_TOOLS_PATH }}
 
       - name: Install dotnet-sonarscanner
         if: steps.cache-dotnet-tools.outputs.cache-hit != 'true'
-        run: dotnet tool update -g dotnet-sonarscanner --tool-path ${{ env.DOTNET_TOOLS_PATH }}
+        run: dotnet tool update dotnet-sonarscanner --tool-path ${{ env.DOTNET_TOOLS_PATH }}
 
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
