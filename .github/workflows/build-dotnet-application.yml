@@ -32,7 +32,6 @@ jobs:
         with:
           dotnet-version: 8.0
           dotnet-quality: ga
-          cache: true
 
       - name: Ensure tools directory exists
         shell: powershell
