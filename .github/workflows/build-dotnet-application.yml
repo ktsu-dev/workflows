@@ -4,9 +4,21 @@ on:
 env:
   DOTNET_TOOLS_PATH: ./dotnet-tools
   DOTNET_TOOLS_CACHE_KEY: cache-dotnet-tools
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
 jobs:
-  setup-java:
+  build:
+    strategy:
+      matrix:
+        build-config:
+          - platform: win
+          #- platform: linux
+          #- platform: maccatalyst
+        arch:
+          #- x86
+          - x64
+          #- arm64
+
     runs-on: ubuntu-latest
     steps:
       - name: Install JDK
@@ -15,9 +27,6 @@ jobs:
           java-version: 21
           distribution: zulu
 
-  setup-dotnet:
-    runs-on: ubuntu-latest
-    steps:
       - name: Install .NET Core SDK
         uses: actions/setup-dotnet@v4
         with:
@@ -25,28 +34,10 @@ jobs:
           dotnet-quality: ga
           cache: true
 
-  setup-nsis:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Install NSIS
-      run: |
-        bash -c 'echo "deb http://ftp.debian.org/debian unstable main contrib non-free" >> /etc/apt/sources.list.d/unstable.list'
-        apt-get -y update
-        apt-get -y install -t unstable nsis
-    - name: Print NSIS version
-      run: makensis -VERSION
-    - name: Print NSIS compile flags
-      run: makensis -HDRINFO
-
-  cache-dotnet-tools:
-    runs-on: ubuntu-latest
-    needs: setup-dotnet
-    outputs:
-      cache-hit: ${{ steps.cache-dotnet-tools.outputs.cache-hit }}
-    steps:
       - name: Ensure tools directory exists
         shell: powershell
         run: New-Item -Path ${{ env.DOTNET_TOOLS_PATH }} -ItemType Directory -Force
+
       - name: Cache dotnet tools
         id: cache-dotnet-tools
         uses: actions/cache@v4
@@ -55,48 +46,30 @@ jobs:
           key: ${{ env.DOTNET_TOOLS_CACHE_KEY }}
           enableCrossOsArchive: true
 
-  setup-dotnet-tools:
-    runs-on: ubuntu-latest
-    needs: cache-dotnet-tools
-    if: needs.cache-dotnet-tools.outputs.cache-hit != 'true'
-    steps:
       - name: Install dotnet-script
+        if: steps.cache-dotnet-tools.outputs.cache-hit != 'true'
         run: dotnet tool update -g dotnet-script --tool-path ${{ env.DOTNET_TOOLS_PATH }}
+
       - name: Install dotnet-coverage
+        if: steps.cache-dotnet-tools.outputs.cache-hit != 'true'
         run: dotnet tool update -g dotnet-coverage --tool-path ${{ env.DOTNET_TOOLS_PATH }}
+
       - name: Install dotnet-sonarscanner
+        if: steps.cache-dotnet-tools.outputs.cache-hit != 'true'
         run: dotnet tool update -g dotnet-sonarscanner --tool-path ${{ env.DOTNET_TOOLS_PATH }}
 
-  setup-sonar-scanner:
-    runs-on: ubuntu-latest
-    steps:
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
           path: ~/sonar/cache
           key: ${{ runner.os }}-sonar
 
-  build-test:
-    runs-on: ubuntu-latest
-    needs:
-      - setup-java
-      - setup-dotnet-tools
-      - setup-sonar-scanner
-    env:
-      NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
-    strategy:
-      matrix:
-        build-config:
-          - platform: win
-          - platform: linux
-          - platform: maccatalyst
-        arch: [x86, x64, arm64]
-    steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
+
       - name: Build and Test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
@@ -107,23 +80,23 @@ jobs:
           dotnet build --no-incremental -r ${{ matrix.build-config.platform }}-${{ matrix.arch }} -f net.8.0
           ${{ env.DOTNET_TOOLS_PATH }}/dotnet-coverage collect "dotnet test" -f xml -o "coverage.xml"
           ${{ env.DOTNET_TOOLS_PATH }}/dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
       - name: Build ${{ matrix.build-config.platform }}-${{ matrix.arch }} executable
         run: dotnet publish -o ./publish-${{ matrix.build-config.platform }}-${{ matrix.arch }} --self-contained -r ${{ matrix.build-config.platform }}-${{ matrix.arch }} -f net.8.0
 
-  build-installer:
-    runs-on: ubuntu-latest
-    needs: 
-      - build-test
-      - setup-nsis
-    steps:
+      - name: Install NSIS
+        run: |
+          apt-get -y update
+          apt-get -y install unstable nsis
+      - name: Print NSIS version
+        run: makensis -VERSION
+      - name: Print NSIS compile flags
+        run: makensis -HDRINFO
       - name: Build NSIS installer
         run: makensis setup.nsi
 
-  release:
-    runs-on: ubuntu-latest
-    needs: build-installer
-    steps:
       - name: Read VERSION
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
         id: version
         uses: juliangruber/read-file-action@v1
         with:
