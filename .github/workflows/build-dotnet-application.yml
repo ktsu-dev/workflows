@@ -2,15 +2,19 @@ on:
   workflow_call:
 
 jobs:
-  install-tools:
+  build-test-pack-release:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [win, linux, maccatalyst]
+        arch: [x86, x64, arm64]
     steps:
-      - name: Set up JDK 17
+      - name: Install JDK
         uses: actions/setup-java@v3
         with:
           java-version: 17
           distribution: 'zulu'
-      - name: Setup .NET Core SDK
+      - name: Install .NET Core SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -46,71 +50,41 @@ jobs:
         run: |
           New-Item -Path .\.sonar\scanner -ItemType Directory
           dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
-
-  build-and-analyze-dll:
-    runs-on: windows-latest
-    needs: install-tools
-    steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
-      - name: Build and Analyze
+      - name: Build and Test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"${{ github.event.organization.login }}_${{ github.event.repository.name }}" /o:"ktsu-io" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
-          dotnet build --no-incremental
+          dotnet build --no-incremental -r ${{ matrix.platform }}-${{ matrix.arch }}
           dotnet-coverage collect "dotnet test" -f xml -o "coverage.xml"
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
-  
-  build-executables:
-    strategy:
-      matrix:
-        platform: [win, linux, maccatalyst]
-        arch: [x86, x64, arm64]
-    runs-on: windows-latest
-    needs: build-and-analyze-dll
-    steps:
-    - name: Build ${{ matrix.platform }}-${{ matrix.arch }} executable
-      run: dotnet publish -o ./publish-${{ matrix.platform }}-${{ matrix.arch }} --self-contained -r ${{ matrix.platform }}-${{ matrix.arch }} -f net.8.0
-
-  build-installers:
-    runs-on: windows-latest
-    needs: build-executables
-    steps:
-      - name: Install NSIS
-        run: |
-          iwr -useb get.scoop.sh -outfile 'install.ps1'
-          .\install.ps1 -RunAsAdmin
-          scoop update
-          scoop bucket add extras
-          scoop install nsis
+      - name: Build ${{ matrix.platform }}-${{ matrix.arch }} executable
+        run: dotnet publish -o ./publish-${{ matrix.platform }}-${{ matrix.arch }} --self-contained -r ${{ matrix.platform }}-${{ matrix.arch }} -f net.8.0
       - name: Build NSIS installer
         run: makensis setup.nsi
-
-  make-release:
-    needs: build-installers
-    runs-on: windows-latest
-    steps:
-    - name: Read version
-      id: version
-      uses: juliangruber/read-file-action@v1
-      with:
-        path: ./VERSION
-        trim: true
-    - name: Release
-      if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: "setup.exe"
-        tag: ${{ steps.version.outputs.content }}
-        commit: main
-        allowUpdates: false
-        skipIfReleaseExists: true
-        omitBody: true
-        generateReleaseNotes: true
-        replacesArtifacts: false
-        makeLatest: true
+      - name: Read VERSION
+        id: version
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./VERSION
+          trim: true
+      - name: Release
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "setup.exe"
+          tag: ${{ steps.version.outputs.content }}
+          commit: main
+          allowUpdates: false
+          skipIfReleaseExists: true
+          omitBody: true
+          generateReleaseNotes: true
+          replacesArtifacts: false
+          makeLatest: true
