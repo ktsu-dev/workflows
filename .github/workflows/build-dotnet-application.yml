@@ -32,13 +32,13 @@ jobs:
           dotnet-quality: ga
 
       - name: Install dotnet-script
-        run: dotnet tool update dotnet-script
+        run: dotnet tool update dotnet-script --global
 
       - name: Install dotnet-coverage
-        run: dotnet tool update dotnet-coverage
+        run: dotnet tool update dotnet-coverage --global
 
       - name: Install dotnet-sonarscanner
-        run: dotnet tool update dotnet-sonarscanner
+        run: dotnet tool update dotnet-sonarscanner --global
 
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
@@ -68,7 +68,7 @@ jobs:
       - name: Install NSIS
         run: |
           apt-get -y update
-          apt-get -y install unstable nsis
+          apt-get -y install nsis
       - name: Print NSIS version
         run: makensis -VERSION
       - name: Print NSIS compile flags
