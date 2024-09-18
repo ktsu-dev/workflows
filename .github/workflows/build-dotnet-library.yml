@@ -40,7 +40,7 @@ jobs:
 
       - name: Bump version
         id: semver
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+        if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.pull_request.merged) }}
         uses: nguyenvukhang/semver-increment@v1
         with:
           increment: ${{ contains(steps.versionfile.outputs.content, 'alpha') && 'prerelease' || 'patch' }}
