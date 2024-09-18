@@ -31,6 +31,9 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - name: Component detection 
+        uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
+        
       - name: Read version
         id: versionfile
         uses: juliangruber/read-file-action@v1
