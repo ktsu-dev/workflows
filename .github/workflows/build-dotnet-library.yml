@@ -70,7 +70,11 @@ jobs:
       - name: Publish to NuGet
         if: ${{ env.SHOULD_RELEASE == 'true' && hashFiles('*.nupkg') != '' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-      
+
+      - name: Commit
+        if: ${{ env.SHOULD_RELEASE == 'true' }}
+        uses: stefanzweifel/git-auto-commit-action@v5
+        
       - name: Release
         if: ${{ env.SHOULD_RELEASE == 'true' }}
         uses: ncipollo/release-action@v1
