@@ -30,19 +30,23 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
-      
-      - name: Bump version and push tag
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-        id: version
-        uses: minddocdev/mou-version-action@v1.0.0
+
+      - name: Read version
+        id: versionfile
+        uses: juliangruber/read-file-action@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Write VERSION file
+          path: ./VERSION
+          trim: true
+
+      - name: Bump version
+        id: semver
         if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-        shell: powershell
-        run: |
-          "${{ steps.version.outputs.version }}" | Out-File -FilePath ".\VERSION"
+        uses: nguyenvukhang/semver-increment@v1
+        with:
+          increment: ${{ contains(steps.versionfile.outputs.content, 'alpha') && 'prerelease' || 'patch' }}
+          identifier: 'alpha'
+          version-file: 'VERSION'
+          version-regex: '^(.*)'
       
       - name: Build and analyze
         env:
@@ -69,7 +73,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "*.*nupkg"
-          tag: ${{ steps.version.outputs.version }}
+          tag: ${{ steps.semver.outputs.version }}
           commit: main
           allowUpdates: false
           skipIfReleaseExists: true
