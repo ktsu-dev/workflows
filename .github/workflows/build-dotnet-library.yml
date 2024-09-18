@@ -52,7 +52,7 @@ jobs:
           version-regex: '^(.*)'
       
       - name: Build
-        run: dotnet build --no-incremental
+        run: dotnet build --no-incremental -m:1
 
       - name: Test
         run: dotnet test
