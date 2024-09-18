@@ -40,7 +40,7 @@ jobs:
 
       - name: Bump version
         id: semver
-        if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.pull_request.merged) }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: nguyenvukhang/semver-increment@v1
         with:
           increment: ${{ contains(steps.versionfile.outputs.content, 'alpha') && 'prerelease' || 'patch' }}
@@ -69,7 +69,7 @@ jobs:
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Release
-        if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event.pull_request.merged) }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         uses: ncipollo/release-action@v1
         with:
           artifacts: "*.*nupkg"
