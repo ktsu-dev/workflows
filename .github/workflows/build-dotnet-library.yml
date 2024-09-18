@@ -51,15 +51,15 @@ jobs:
           version-file: 'VERSION'
           version-regex: '^(.*)'
       
-      - name: Build and analyze
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        shell: powershell
-        run: |
-          dotnet build --no-incremental
-          dotnet test
-      
+      - name: Build
+        run: dotnet build --no-incremental
+
+      - name: Test
+        run: dotnet test
+
+      - name: Component detection 
+        uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
+        
       - name: Build the package for nuget
         run: dotnet pack --include-source --configuration Release --output . -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ github.sha }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
 
@@ -71,9 +71,6 @@ jobs:
         if: ${{ env.SHOULD_RELEASE == 'true' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
       
-      - name: Component detection 
-        uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
-        
       - name: Release
         if: ${{ env.SHOULD_RELEASE == 'true' }}
         uses: ncipollo/release-action@v1
