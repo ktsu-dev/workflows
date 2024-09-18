@@ -74,6 +74,9 @@ jobs:
       - name: Commit
         if: ${{ env.SHOULD_RELEASE == 'true' }}
         uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: '[skip ci] Update VERSION to ${{ steps.semver.outputs.version }}'
+          file_pattern: 'VERSION'
         
       - name: Release
         if: ${{ env.SHOULD_RELEASE == 'true' }}
