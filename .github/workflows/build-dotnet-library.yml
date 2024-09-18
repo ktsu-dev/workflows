@@ -4,6 +4,9 @@ run-name: "${{ github.repository }} build-dotnet-library"
 on:
   workflow_call:
 
+env:
+  SHOULD_RELEASE: ${{ github.ref == 'refs/heads/main' || (github.base_ref == 'refs/heads/main' && github.event.pull_request.merged == 'true') }}
+  
 jobs:
   build-test-publish:
     name: "${{ github.repository }} build-dotnet-library"
@@ -31,9 +34,6 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Component detection 
-        uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
-        
       - name: Read version
         id: versionfile
         uses: juliangruber/read-file-action@v1
@@ -43,7 +43,7 @@ jobs:
 
       - name: Bump version
         id: semver
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ env.SHOULD_RELEASE == 'true' }}
         uses: nguyenvukhang/semver-increment@v1
         with:
           increment: ${{ contains(steps.versionfile.outputs.content, 'alpha') && 'prerelease' || 'patch' }}
@@ -62,17 +62,20 @@ jobs:
       
       - name: Build the package for nuget
         run: dotnet pack --include-source --configuration Release --output . -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ github.sha }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
-      
+
       - name: Publish to GitHub
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' &&  hashFiles('*.nupkg') != '' }}
+        if: ${{ env.SHOULD_RELEASE == 'true' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
       
       - name: Publish to NuGet
-        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && hashFiles('*.nupkg') != '' }}
+        if: ${{ env.SHOULD_RELEASE == 'true' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-
+      
+      - name: Component detection 
+        uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
+        
       - name: Release
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ env.SHOULD_RELEASE == 'true' }}
         uses: ncipollo/release-action@v1
         with:
           artifacts: "*.*nupkg"
