@@ -39,6 +39,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Write VERSION file
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
         shell: powershell
         run: |
           "${{ steps.version.outputs.version }}" | Out-File -FilePath ".\VERSION"
