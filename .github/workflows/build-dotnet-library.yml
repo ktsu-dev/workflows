@@ -73,7 +73,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           artifacts: "*.*nupkg"
-          tag: ${{ steps.semver.outputs.version }}
+          tag: v${{ steps.semver.outputs.version }}
           commit: main
           allowUpdates: false
           skipIfReleaseExists: true
