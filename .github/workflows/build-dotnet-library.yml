@@ -5,7 +5,7 @@ on:
   workflow_call:
 
 env:
-  SHOULD_RELEASE: ${{ github.ref == 'refs/heads/main' || (github.base_ref == 'refs/heads/main' && github.event.pull_request.merged == 'true') }}
+  SHOULD_RELEASE: ${{ github.ref == 'refs/heads/main' || (github.base_ref == 'main' && github.event.pull_request.merged == 'true') }}
   
 jobs:
   build-test-publish:
