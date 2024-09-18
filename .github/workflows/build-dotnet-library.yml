@@ -14,6 +14,7 @@ jobs:
         with:
           java-version: 17
           distribution: 'zulu'
+      
       - name: Setup .NET Core SDK
         uses: actions/setup-dotnet@v4
         with:
@@ -21,12 +22,27 @@ jobs:
             6.0.x
             7.0.x
             8.0.x
+      
       - name: Install dotnet-script
         run: dotnet tool install -g dotnet-script
+      
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
+      
+      - name: Bump version and push tag
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+        id: version
+        uses: minddocdev/mou-version-action@v1.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Write VERSION file
+        shell: powershell
+        run: |
+          "${{ steps.version.outputs.version }}" | Out-File -FilePath ".\VERSION"
+      
       - name: Build and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
@@ -35,26 +51,24 @@ jobs:
         run: |
           dotnet build --no-incremental
           dotnet test
+      
       - name: Build the package for nuget
         run: dotnet pack --include-source --configuration Release --output . -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ github.sha }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
+      
       - name: Publish to GitHub
         if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' &&  hashFiles('*.nupkg') != '' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
+      
       - name: Publish to NuGet
         if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && hashFiles('*.nupkg') != '' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-      - name: Read version
-        id: version
-        uses: juliangruber/read-file-action@v1
-        with:
-          path: ./VERSION
-          trim: true
+
       - name: Release
         if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
         uses: ncipollo/release-action@v1
         with:
           artifacts: "*.*nupkg"
-          tag: ${{ steps.version.outputs.content }}
+          tag: ${{ steps.version.outputs.version }}
           commit: main
           allowUpdates: false
           skipIfReleaseExists: true
