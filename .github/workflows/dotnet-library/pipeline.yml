@@ -1,0 +1,42 @@
+name: dotnet-library-pipeline
+
+on:
+  workflow_call:
+
+jobs:
+  dotnet-library-pipeline:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          
+      - name: Run Checks
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/checks.yml@main
+        secrets: inherit
+
+      - name: Configure Environment
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/configure.yml@main
+        secrets: inherit
+
+      - name: Generate Version
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/version.yml@main
+        secrets: inherit
+      
+      - name: Build
+        run: dotnet build --no-incremental -m:1
+
+      - name: Test
+        run: dotnet test
+
+      - name: Detect Dependencies
+        uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
+        
+      - name: Publish
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/publish.yml@main
+        secrets: inherit
+      
+      - name: Release
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/release.yml@main
+        secrets: inherit

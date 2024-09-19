@@ -1,0 +1,21 @@
+on:
+  workflow_call:
+
+jobs:
+  checks:
+    steps:
+      - name: Check branch
+        run: |
+          "IS_MAIN=" + ("${{ github.ref }}"  == "refs/heads/main") | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          
+      - name: Check tag
+        run: |
+          "IS_TAGGED=" + !((git describe --contains | Out-String).Contains("~")) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+      
+      - name: Check release
+        run: |
+          "SHOULD_RELEASE=" + ($Env:IS_MAIN && !($Env:IS_TAGGED)) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          
+      - name: Check build
+        run: |
+          "SHOULD_BUILD=" + ($Env:SHOULD_RELEASE || !($Env:IS_MAIN)) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
