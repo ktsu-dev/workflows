@@ -31,15 +31,17 @@ jobs:
         run: |
           "SHOULD_BUILD=" + (($Env:SHOULD_RELEASE -eq "True") -OR ($Env:IS_MAIN -eq "False")) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Check Should Build
+        if: ${{ env.SHOULD_BUILD == 'False' }}
+        uses: action-pack/cancel@v1
+
       - name: Set up JDK 17
-        if: ${{ env.SHOULD_BUILD == 'True' }}
         uses: actions/setup-java@v3
         with:
           java-version: 17
           distribution: 'zulu'
       
       - name: Setup .NET Core SDK
-        if: ${{ env.SHOULD_BUILD == 'True' }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -48,11 +50,10 @@ jobs:
             8.0.x
       
       - name: Install dotnet-script
-        if: ${{ env.SHOULD_BUILD == 'True' }}
         run: dotnet tool install -g dotnet-script
 
       - name: Read version
-        if: ${{ env.SHOULD_BUILD == 'True' && env.SHOULD_RELEASE == 'True' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' }}
         id: versionfile
         uses: juliangruber/read-file-action@v1
         with:
@@ -60,7 +61,7 @@ jobs:
           trim: true
 
       - name: Bump version
-        if: ${{ env.SHOULD_BUILD == 'True' && env.SHOULD_RELEASE == 'True' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' }}
         id: semver
         uses: nguyenvukhang/semver-increment@v1
         with:
@@ -70,36 +71,33 @@ jobs:
           version-regex: '^(.*)'
 
       - name: Return version
-        if: ${{ env.SHOULD_BUILD == 'True' && env.SHOULD_RELEASE == 'True' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' }}
         run: |
           "VERSION=${{ steps.semver.outputs.version }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
       
       - name: Build
-        if: ${{ env.SHOULD_BUILD == 'True' }}
         run: dotnet build --no-incremental -m:1
 
       - name: Test
-        if: ${{ env.SHOULD_BUILD == 'True' }}
         run: dotnet test
 
       - name: Detect Dependencies
-        if: ${{ env.SHOULD_BUILD == 'True' }}
         uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
         
       - name: Build Package
-        if: ${{ env.SHOULD_BUILD == 'True' && env.SHOULD_RELEASE == 'True' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' }}
         run: dotnet pack --include-source --configuration Release --output . -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ github.sha }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
 
       - name: Publish to GitHub
-        if: ${{ env.SHOULD_BUILD == 'True' && env.SHOULD_RELEASE == 'True' && hashFiles('*.nupkg') != '' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' && hashFiles('*.nupkg') != '' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
       
       - name: Publish to NuGet
-        if: ${{ env.SHOULD_BUILD == 'True' && env.SHOULD_RELEASE == 'True' && hashFiles('*.nupkg') != '' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' && hashFiles('*.nupkg') != '' }}
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
       
       - name: Commit Version
-        if: ${{ env.SHOULD_BUILD == 'True' && env.SHOULD_RELEASE == 'True' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' }}
         id: auto-commit-action
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
@@ -107,7 +105,7 @@ jobs:
           file_pattern: 'VERSION'
         
       - name: Release
-        if: ${{ env.SHOULD_BUILD == 'True' && env.SHOULD_RELEASE == 'True' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' }}
         uses: ncipollo/release-action@v1
         with:
           artifacts: "*.*nupkg"
