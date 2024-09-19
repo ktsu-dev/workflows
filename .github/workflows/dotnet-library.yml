@@ -27,14 +27,6 @@ jobs:
         run: |
           "SHOULD_RELEASE=" + (($Env:IS_MAIN -eq "True") -AND ($Env:IS_TAGGED -eq "False")) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
           
-      - name: Check build
-        run: |
-          "SHOULD_BUILD=" + (($Env:SHOULD_RELEASE -eq "True") -OR ($Env:IS_MAIN -eq "False")) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Check Should Build
-        if: ${{ env.SHOULD_BUILD == 'False' }}
-        uses: action-pack/cancel@v1
-
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
