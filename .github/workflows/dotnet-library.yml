@@ -12,7 +12,11 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
           submodules: recursive
-          
+
+      - name: Fetch tags
+        run: |
+          git fetch --prune --unshallow --tags
+
       - name: Check branch
         run: |
           "IS_MAIN=" + ("${{ github.ref }}" -eq "refs/heads/main") | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
