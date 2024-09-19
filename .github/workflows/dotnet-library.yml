@@ -79,7 +79,7 @@ jobs:
         run: dotnet build --no-incremental -m:1
 
       - name: Test
-        if: env.SHOULD_BUILD }}
+        if: ${{ env.SHOULD_BUILD }}
         run: dotnet test
 
       - name: Detect Dependencies
