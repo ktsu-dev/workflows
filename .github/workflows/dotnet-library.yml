@@ -12,19 +12,64 @@ jobs:
           fetch-depth: 0
           submodules: recursive
           
-      - name: Run Checks
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-checks.yml@main
-        secrets: inherit
+      - name: Check branch
+        run: |
+          "IS_MAIN=" + ("${{ github.ref }}"  == "refs/heads/main") | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          
+      - name: Check tag
+        run: |
+          "IS_TAGGED=" + !((git describe --contains | Out-String).Contains("~")) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+      
+      - name: Check release
+        run: |
+          "SHOULD_RELEASE=" + ($Env:IS_MAIN && !($Env:IS_TAGGED)) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          
+      - name: Check build
+        run: |
+          "SHOULD_BUILD=" + ($Env:SHOULD_RELEASE || !($Env:IS_MAIN)) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Configure Environment
+      - name: Set up JDK 17
         if: env.SHOULD_BUILD
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-configure.yml@main
-        secrets: inherit
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: 'zulu'
+      
+      - name: Setup .NET Core SDK
+        if: env.SHOULD_BUILD
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            7.0.x
+            8.0.x
+      
+      - name: Install dotnet-script
+        if: env.SHOULD_BUILD
+        run: dotnet tool install -g dotnet-script
 
-      - name: Generate Version
+      - name: Read version
         if: env.SHOULD_BUILD && env.SHOULD_RELEASE
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-version.yml@main
-        secrets: inherit
+        id: versionfile
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./VERSION
+          trim: true
+
+      - name: Bump version
+        if: env.SHOULD_BUILD && env.SHOULD_RELEASE
+        id: semver
+        uses: nguyenvukhang/semver-increment@v1
+        with:
+          increment: ${{ contains(steps.versionfile.outputs.content, 'alpha') && 'prerelease' || 'patch' }}
+          identifier: 'alpha'
+          version-file: 'VERSION'
+          version-regex: '^(.*)'
+
+      - name: Return version
+        if: env.SHOULD_BUILD && env.SHOULD_RELEASE
+        run: |
+          "VERSION=${{ steps.semver.outputs.version }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
       
       - name: Build
         if: env.SHOULD_BUILD
@@ -38,12 +83,38 @@ jobs:
         if: env.SHOULD_BUILD
         uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
         
-      - name: Publish
+      - name: Build Package
         if: env.SHOULD_BUILD && env.SHOULD_RELEASE
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-publish.yml@main
-        secrets: inherit
+        run: dotnet pack --include-source --configuration Release --output . -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ github.sha }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
+
+      - name: Publish to GitHub
+        if: env.SHOULD_BUILD && env.SHOULD_RELEASE
+        if: ${{ hashFiles('*.nupkg') != '' }}
+        run: dotnet nuget push *.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
       
+      - name: Publish to NuGet
+        if: env.SHOULD_BUILD && env.SHOULD_RELEASE
+        if: ${{ hashFiles('*.nupkg') != '' }}
+        run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      
+      - name: Commit Version
+        if: env.SHOULD_BUILD && env.SHOULD_RELEASE
+        id: auto-commit-action
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Update VERSION to ${{ env.VERSION }}'
+          file_pattern: 'VERSION'
+        
       - name: Release
         if: env.SHOULD_BUILD && env.SHOULD_RELEASE
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-release.yml@main
-        secrets: inherit
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "*.*nupkg"
+          tag: v${{ env.VERSION }}
+          commit: ${{ steps.auto-commit-action.outputs.commit_hash }}
+          allowUpdates: false
+          skipIfReleaseExists: true
+          omitBody: true
+          generateReleaseNotes: true
+          replacesArtifacts: false
+          makeLatest: true
