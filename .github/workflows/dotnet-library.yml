@@ -25,11 +25,11 @@ jobs:
       
       - name: Check release
         run: |
-          "SHOULD_RELEASE=" + ($Env:IS_MAIN -AND (!$Env:IS_TAGGED)) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          "SHOULD_RELEASE=" + (($Env:IS_MAIN -eq "True") -AND ($Env:IS_TAGGED -eq "False")) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
           
       - name: Check build
         run: |
-          "SHOULD_BUILD=" + ($Env:SHOULD_RELEASE -OR (!$Env:IS_MAIN)) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          "SHOULD_BUILD=" + (($Env:SHOULD_RELEASE -eq "True") -OR ($Env:IS_MAIN -eq "False")) | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Set up JDK 17
         if: ${{ env.SHOULD_BUILD == 'True' }}
