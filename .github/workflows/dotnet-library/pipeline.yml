@@ -17,26 +17,33 @@ jobs:
         secrets: inherit
 
       - name: Configure Environment
+        if: env.SHOULD_BUILD
         uses: ktsu-dev/workflows/.github/workflows/dotnet-library/configure.yml@main
         secrets: inherit
 
       - name: Generate Version
+        if: env.SHOULD_BUILD && env.SHOULD_RELEASE
         uses: ktsu-dev/workflows/.github/workflows/dotnet-library/version.yml@main
         secrets: inherit
       
       - name: Build
+        if: env.SHOULD_BUILD
         run: dotnet build --no-incremental -m:1
 
       - name: Test
+        if: env.SHOULD_BUILD
         run: dotnet test
 
       - name: Detect Dependencies
+        if: env.SHOULD_BUILD
         uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
         
       - name: Publish
+        if: env.SHOULD_BUILD && env.SHOULD_RELEASE
         uses: ktsu-dev/workflows/.github/workflows/dotnet-library/publish.yml@main
         secrets: inherit
       
       - name: Release
+        if: env.SHOULD_BUILD && env.SHOULD_RELEASE
         uses: ktsu-dev/workflows/.github/workflows/dotnet-library/release.yml@main
         secrets: inherit
