@@ -13,17 +13,17 @@ jobs:
           submodules: recursive
           
       - name: Run Checks
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/checks.yml@main
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-checks.yml@main
         secrets: inherit
 
       - name: Configure Environment
         if: env.SHOULD_BUILD
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/configure.yml@main
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-configure.yml@main
         secrets: inherit
 
       - name: Generate Version
         if: env.SHOULD_BUILD && env.SHOULD_RELEASE
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/version.yml@main
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-version.yml@main
         secrets: inherit
       
       - name: Build
@@ -40,10 +40,10 @@ jobs:
         
       - name: Publish
         if: env.SHOULD_BUILD && env.SHOULD_RELEASE
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/publish.yml@main
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-publish.yml@main
         secrets: inherit
       
       - name: Release
         if: env.SHOULD_BUILD && env.SHOULD_RELEASE
-        uses: ktsu-dev/workflows/.github/workflows/dotnet-library/release.yml@main
+        uses: ktsu-dev/workflows/.github/workflows/dotnet-library-release.yml@main
         secrets: inherit
