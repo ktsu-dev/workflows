@@ -20,6 +20,7 @@ jobs:
           "IS_MAIN=" + ("${{ github.ref }}" -eq "refs/heads/main") | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
           
       - name: Check tag
+        continue-on-error: true
         run: |
           "IS_TAGGED=" + (git show-ref --tags -d | Out-String).Contains("${{ github.sha }}") | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
       
