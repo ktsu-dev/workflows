@@ -47,7 +47,7 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content -Path VERSION -Raw).Trim()
-          $lastHumanCommit = git log -n 1 --author='^(?!SyncFileContents|github-actions|dependabot|ProjectDirector|.*noreply.github.com).*$' --perl-regexp --format=format:%H
+          $lastHumanCommit = git log -n 1 --committer='^(?!.*\[bot\]|GitHub|ProjectDirector|SyncFileContents).*$' --perl-regexp --format=format:%H
           $wasLastHumanCommitTagged = (git tag --contains $lastHumanCommit) -ne $null
           $currentVersionIsAlpha = $version -contains 'alpha'
           $versionIncrement = $wasLastHumanCommitTagged ? 'patch' : 'minor'
