@@ -47,12 +47,32 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content -Path VERSION -Raw).Trim()
-          $lastHumanCommit = git log -n 1 --committer='^(?!.*\[bot\]|GitHub|ProjectDirector|SyncFileContents).*$' --perl-regexp --format=format:%H
-          $wasLastHumanCommitTagged = (git tag --contains $lastHumanCommit) -ne $null
-          $currentVersionIsAlpha = $version -contains 'alpha'
-          $versionIncrement = $wasLastHumanCommitTagged ? 'patch' : 'minor'
-          $versionIncrement = $currentVersionIsAlpha ? 'prerelease' : $versionIncrement
-          Write-Host $versionIncrement
+          # Get the last relevant commit that is not from a bot or application
+          $lastRelevantCommit = git log -n 1 `
+            --committer='^(?!.*\[bot\]|GitHub|ProjectDirector|SyncFileContents).*$' `
+            --perl-regexp --format=format:%H `
+            -- '*.*' ':!.*' `
+            ':(icase,exclude)*.md' `
+            ':(icase,exclude)*.yml' `
+            ':(icase,exclude)*.yaml' `
+            ':(icase,exclude)*.sln' `
+            ':(icase,exclude)Directory.Build.*' `
+            ':(icase,exclude)*.*proj'
+          
+          $wasLastRelevantCommitTagged = (git tag --contains $lastRelevantCommit) -ne $null
+          $isCurrentVersionAlpha = $version -contains 'alpha'
+          
+          $versionIncrement = 'minor'
+          
+          if ($wasLastRelevantCommitTagged) {
+            $versionIncrement = 'patch'
+          }
+          
+          if ($currentVersionIsAlpha) {
+            $versionIncrement = 'prerelease'
+          }
+          
+          Write-Host "Increment $versionIncrement version"
           "VERSION_INCREMENT=$versionIncrement" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Bump version
