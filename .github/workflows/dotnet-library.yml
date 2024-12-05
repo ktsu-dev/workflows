@@ -59,8 +59,8 @@ jobs:
             ':(icase,exclude)Directory.Build.*' `
             ':(icase,exclude)*.*proj'
           
-          $wasLastRelevantCommitTagged = (git tag --contains $lastRelevantCommit) -ne $null
-          $currentVersionIsAlpha = $version -contains 'alpha'
+          $wasLastRelevantCommitTagged = (git tag --contains $lastRelevantCommit).Length -gt 0
+          $currentVersionIsAlpha = $version.Contains('alpha')
           
           $versionIncrement = 'minor'
           
@@ -72,7 +72,11 @@ jobs:
             $versionIncrement = 'prerelease'
           }
           
-          Write-Host "Increment $versionIncrement version"
+          Write-Host "Current version: $version"
+          Write-Host "Last relevant commit: $lastRelevantCommit"
+          Write-Host "Was last relevant commit tagged: $wasLastRelevantCommitTagged"
+          Write-Host "Current version is alpha: $currentVersionIsAlpha"
+          Write-Host "Increment by: $versionIncrement"
           "VERSION_INCREMENT=$versionIncrement" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Bump version
