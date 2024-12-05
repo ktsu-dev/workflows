@@ -60,7 +60,7 @@ jobs:
             ':(icase,exclude)*.*proj'
           
           $wasLastRelevantCommitTagged = (git tag --contains $lastRelevantCommit) -ne $null
-          $isCurrentVersionAlpha = $version -contains 'alpha'
+          $currentVersionIsAlpha = $version -contains 'alpha'
           
           $versionIncrement = 'minor'
           
