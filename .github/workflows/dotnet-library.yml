@@ -72,15 +72,20 @@ jobs:
             $versionIncrement = 'prerelease'
           }
           
+          $versionIsTagged = ((git tag --list "v$version").Length -gt 0) -OR ((git tag --list "$version").Length -gt 0)
+          $shouldIncrement = $versionIsTagged
+          
           Write-Host "Current version: $version"
           Write-Host "Last relevant commit: $lastRelevantCommit"
           Write-Host "Was last relevant commit tagged: $wasLastRelevantCommitTagged"
           Write-Host "Current version is alpha: $currentVersionIsAlpha"
           Write-Host "Increment by: $versionIncrement"
           "VERSION_INCREMENT=$versionIncrement" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          "SHOULD_INCREMENT=$shouldIncrement" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+          "VERSION=$version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Bump version
-        if: ${{ env.SHOULD_RELEASE == 'True' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' && env.SHOULD_INCREMENT == 'True' }}
         id: semver
         uses: nguyenvukhang/semver-increment@v1
         with:
@@ -90,7 +95,7 @@ jobs:
           version-regex: '^(.*)'
 
       - name: Return version
-        if: ${{ env.SHOULD_RELEASE == 'True' }}
+        if: ${{ env.SHOULD_RELEASE == 'True' && env.SHOULD_INCREMENT == 'True' }}
         run: |
           "VERSION=${{ steps.semver.outputs.version }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
       
