@@ -1,4 +1,4 @@
-name: dotnet
+name: dotnet-pipeline
 
 on:
   workflow_call:
