@@ -165,7 +165,9 @@ jobs:
       if: ${{ env.SHOULD_RELEASE == 'True' }}
       shell: pwsh
       run: |
-        Remove-Item -Recurse -Force ${{ env.OUTPUT_PATH }}
+        if (Test-Path ${{ env.OUTPUT_PATH }}) {
+          Remove-Item -Recurse -Force ${{ env.OUTPUT_PATH }}
+        }
         Get-ChildItem -Recurse -Filter *.csproj | ForEach-Object {
           $csproj = $_
           $projName = [System.IO.Path]::GetFileNameWithoutExtension($csproj)
