@@ -4,8 +4,8 @@ on:
   workflow_call:
 
 env:
-  OUTPUT_PATH: './output'
-  STAGING_PATH: './staging'
+  OUTPUT_PATH: 'output'
+  STAGING_PATH: 'staging'
   DOTNET_VERSION: '9.0'
 
 jobs:
@@ -29,8 +29,8 @@ jobs:
         $IS_TAGGED = (git show-ref --tags -d | Out-String).Contains("${{ github.sha }}")
         $SHOULD_RELEASE = ($IS_MAIN -AND -NOT $IS_TAGGED)
         $USE_DOTNET_SCRIPT = (Get-ChildItem -Recurse -Filter *.csx).Count -gt 0
-        $PACKAGE_PATTERN = "${{ env.STAGING_PATH }}/*.nupkg"
-        $APPLICATION_PATTERN = "${{ env.STAGING_PATH }}/*.zip"
+        $PACKAGE_PATTERN = "${{ github.workspace }}/${{ env.STAGING_PATH }}/*.nupkg"
+        $APPLICATION_PATTERN = "${{ github.workspace }}/${{ env.STAGING_PATH }}/*.zip"
 
         "IS_MAIN=$IS_MAIN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         "IS_TAGGED=$IS_TAGGED" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
@@ -159,20 +159,20 @@ jobs:
       
     - name: Package Libraries
       if: ${{ env.SHOULD_RELEASE == 'True' }}
-      run: dotnet pack --include-source --configuration Release --output ${{ env.STAGING_PATH }} -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ env.RELEASE_HASH }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
+      run: dotnet pack --include-source --configuration Release --output ${{ github.workspace }}/${{ env.STAGING_PATH }} -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ env.RELEASE_HASH }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
 
     - name: Package Applications win-x64
       if: ${{ env.SHOULD_RELEASE == 'True' }}
       shell: pwsh
       run: |
-        if (Test-Path ${{ env.OUTPUT_PATH }}) {
-          Remove-Item -Recurse -Force ${{ env.OUTPUT_PATH }}
+        if (Test-Path ${{ github.workspace }}/${{ env.OUTPUT_PATH }}) {
+          Remove-Item -Recurse -Force ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
         }
         Get-ChildItem -Recurse -Filter *.csproj | ForEach-Object {
           $csproj = $_
           $projName = [System.IO.Path]::GetFileNameWithoutExtension($csproj)
-          $outDir = "${{ env.OUTPUT_PATH }}/$projName"
-          $stageDir = "${{ env.STAGING_PATH }}"
+          $outDir = "${{ github.workspace }}/${{ env.OUTPUT_PATH }}/$projName"
+          $stageDir = "${{ github.workspace }}/${{ env.STAGING_PATH }}"
           $stageFile = "$stageDir/$projName-${{ env.VERSION }}.zip"
           New-Item -Path $outDir -ItemType Directory -Force
           New-Item -Path $stageDir -ItemType Directory -Force
