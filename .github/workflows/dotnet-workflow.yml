@@ -143,6 +143,7 @@ jobs:
     
     - name: Install dotnet-script
       if: ${{ env.USE_DOTNET_SCRIPT == 'True' }}
+      shell: pwsh
       run: dotnet tool install -g dotnet-script
 
     - name: Build
@@ -159,6 +160,7 @@ jobs:
       
     - name: Package Libraries
       if: ${{ env.SHOULD_RELEASE == 'True' }}
+      shell: pwsh
       run: dotnet pack --include-source --configuration Release --output ${{ github.workspace }}/${{ env.STAGING_PATH }} -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ env.RELEASE_HASH }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
 
     - name: Package Applications win-x64
@@ -182,10 +184,12 @@ jobs:
 
     - name: Publish Libraries to GitHub
       if: ${{ env.SHOULD_RELEASE == 'True' && hashFiles(env.PACKAGE_PATTERN) != '' }}
+      shell: pwsh
       run: dotnet nuget push ${{ env.PACKAGE_PATTERN }} --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
     
     - name: Publish Libraries to NuGet
       if: ${{ env.SHOULD_RELEASE == 'True' && hashFiles(env.PACKAGE_PATTERN) != '' }}
+      shell: pwsh
       run: dotnet nuget push ${{ env.PACKAGE_PATTERN }} --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
     - name: Release
