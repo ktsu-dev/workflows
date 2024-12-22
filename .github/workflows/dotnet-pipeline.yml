@@ -83,18 +83,18 @@ jobs:
         }
 
         # Output the version information
-        if ($null -neq $VERSION) { Write-Host "Current version: $VERSION" }
-        if ($null -neq $IS_CURRENT_VERSION_TAGGED) { Write-Host "Current version is tagged: $IS_CURRENT_VERSION_TAGGED" }
-        if ($null -neq $IS_CURRENT_VERSION_ALPHA) { Write-Host "Current version is alpha: $IS_CURRENT_VERSION_ALPHA" }
-        if ($null -neq $SHOULD_INCREMENT) { Write-Host "Should increment: $SHOULD_INCREMENT" }
-        if ($null -neq $RELEVENT_COMMIT) { Write-Host "Relevant commit: $RELEVENT_COMMIT" }
-        if ($null -neq $IS_RELEVENT_COMMIT_TAGGED) { Write-Host "Relevant commit is tagged: $IS_RELEVENT_COMMIT_TAGGED" }
-        if ($null -neq $VERSION_INCREMENT) { Write-Host "Increment by: $VERSION_INCREMENT" }
+        if ($null -ne $VERSION) { Write-Host "Current version: $VERSION" }
+        if ($null -ne $IS_CURRENT_VERSION_TAGGED) { Write-Host "Current version is tagged: $IS_CURRENT_VERSION_TAGGED" }
+        if ($null -ne $IS_CURRENT_VERSION_ALPHA) { Write-Host "Current version is alpha: $IS_CURRENT_VERSION_ALPHA" }
+        if ($null -ne $SHOULD_INCREMENT) { Write-Host "Should increment: $SHOULD_INCREMENT" }
+        if ($null -ne $RELEVENT_COMMIT) { Write-Host "Relevant commit: $RELEVENT_COMMIT" }
+        if ($null -ne $IS_RELEVENT_COMMIT_TAGGED) { Write-Host "Relevant commit is tagged: $IS_RELEVENT_COMMIT_TAGGED" }
+        if ($null -ne $VERSION_INCREMENT) { Write-Host "Increment by: $VERSION_INCREMENT" }
 
         # set the environment variables
-        if ($null -neq $SHOULD_INCREMENT) { "SHOULD_INCREMENT=$SHOULD_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
-        if ($null -neq $VERSION) { "VERSION=$VERSION" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
-        if ($null -neq $VERSION_INCREMENT) { "VERSION_INCREMENT=$VERSION_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
+        if ($null -ne $SHOULD_INCREMENT) { "SHOULD_INCREMENT=$SHOULD_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
+        if ($null -ne $VERSION) { "VERSION=$VERSION" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
+        if ($null -ne $VERSION_INCREMENT) { "VERSION_INCREMENT=$VERSION_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
 
     - name: Bump version
       if: ${{ env.SHOULD_RELEASE == 'True' && env.SHOULD_INCREMENT == 'True' }}
