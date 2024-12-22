@@ -161,7 +161,7 @@ jobs:
     - name: Package Libraries
       if: ${{ env.SHOULD_RELEASE == 'True' }}
       shell: pwsh
-      run: dotnet pack --include-source --configuration Release --output ${{ github.workspace }}/${{ env.STAGING_PATH }} -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ env.RELEASE_HASH }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
+      run: dotnet pack --configuration Release --output ${{ github.workspace }}/${{ env.STAGING_PATH }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }}
 
     - name: Package Applications win-x64
       if: ${{ env.SHOULD_RELEASE == 'True' }}
