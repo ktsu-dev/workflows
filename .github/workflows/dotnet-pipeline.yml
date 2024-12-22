@@ -12,190 +12,190 @@ jobs:
   dotnet:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          persist-credentials: true
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        persist-credentials: true
 
-      - name: Fetch tags
-        shell: pwsh
-        run: |
-          git fetch --prune --unshallow --tags
+    - name: Fetch tags
+      shell: pwsh
+      run: |
+        git fetch --prune --unshallow --tags
 
-      - name: Configure Environment
-        shell: pwsh
-        run: |
-          $IS_MAIN = "${{ github.ref }}" -eq "refs/heads/main"
-          $IS_TAGGED = (git show-ref --tags -d | Out-String).Contains("${{ github.sha }}")
-          $SHOULD_RELEASE = ($IS_MAIN -AND -NOT $IS_TAGGED)
-          $USE_DOTNET_SCRIPT = (Get-ChildItem -Recurse -Filter *.csx).Count -gt 0
-          $PACKAGE_PATTERN = "${{ env.STAGING_PATH }}/*.nupkg"
-          $APPLICATION_PATTERN = "${{ env.STAGING_PATH }}/*.zip"
+    - name: Configure Environment
+      shell: pwsh
+      run: |
+        $IS_MAIN = "${{ github.ref }}" -eq "refs/heads/main"
+        $IS_TAGGED = (git show-ref --tags -d | Out-String).Contains("${{ github.sha }}")
+        $SHOULD_RELEASE = ($IS_MAIN -AND -NOT $IS_TAGGED)
+        $USE_DOTNET_SCRIPT = (Get-ChildItem -Recurse -Filter *.csx).Count -gt 0
+        $PACKAGE_PATTERN = "${{ env.STAGING_PATH }}/*.nupkg"
+        $APPLICATION_PATTERN = "${{ env.STAGING_PATH }}/*.zip"
 
-          "IS_MAIN=$IS_MAIN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-          "IS_TAGGED=$IS_TAGGED" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-          "SHOULD_RELEASE=$SHOULD_RELEASE" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-          "USE_DOTNET_SCRIPT=$USE_DOTNET_SCRIPT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-          "PACKAGE_PATTERN=$PACKAGE_PATTERN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-          "APPLICATION_PATTERN=$APPLICATION_PATTERN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append"
+        "IS_MAIN=$IS_MAIN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "IS_TAGGED=$IS_TAGGED" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "SHOULD_RELEASE=$SHOULD_RELEASE" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "USE_DOTNET_SCRIPT=$USE_DOTNET_SCRIPT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "PACKAGE_PATTERN=$PACKAGE_PATTERN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "APPLICATION_PATTERN=$APPLICATION_PATTERN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
-          Write-Host "Is Main: $IS_MAIN"
-          Write-Host "Is Tagged: $IS_TAGGED"
-          Write-Host "Should Release: $SHOULD_RELEASE"
-          Write-Host "Use dotnet-script: $USE_DOTNET_SCRIPT"
-          Write-Host "Package Pattern: $PACKAGE_PATTERN"
-          Write-Host "Application Pattern: $APPLICATION_PATTERN"
-          
-      - name: Configure Version
-        shell: pwsh
-        run: |
-          # read the current version from the VERSION file
-          $VERSION = (Get-Content -Path VERSION -Raw).Trim()
-
-          $IS_CURRENT_VERSION_ALPHA = $VERSION.Contains('alpha')
-          $IS_CURRENT_VERSION_TAGGED = ((git tag --list "v$VERSION").Length -gt 0) -OR ((git tag --list "$VERSION").Length -gt 0)
-          $SHOULD_INCREMENT = $IS_CURRENT_VERSION_TAGGED
-
-          if ($SHOULD_INCREMENT) {
-            # Get the last relevant commit that is not from a bot or application
-            $RELEVENT_COMMIT = git log -n 1 `
-              --committer='^(?!.*\[bot\]|GitHub|ProjectDirector|SyncFileContents).*$' `
-              --perl-regexp --format=format:%H `
-              -- '*.*' ':!.*' `
-              ':(icase,exclude)*.md' `
-              ':(icase,exclude)*.yml' `
-              ':(icase,exclude)*.yaml' `
-              ':(icase,exclude)*.sln' `
-              ':(icase,exclude)Directory.Build.*' `
-              ':(icase,exclude)*.*proj'
-            
-            $IS_RELEVENT_COMMIT_TAGGED = (git tag --contains $RELEVENT_COMMIT).Length -gt 0
-
-            $VERSION_INCREMENT = 'minor'
-            
-            if ($IS_RELEVENT_COMMIT_TAGGED) {
-              $VERSION_INCREMENT = 'patch'
-            }
-            
-            if ($IS_CURRENT_VERSION_ALPHA) {
-              $VERSION_INCREMENT = 'prerelease'
-            }
-          }
- 
-          # Output the version information
-          if ($null -neq $VERSION) { Write-Host "Current version: $VERSION" }
-          if ($null -neq $IS_CURRENT_VERSION_TAGGED) { Write-Host "Current version is tagged: $IS_CURRENT_VERSION_TAGGED" }
-          if ($null -neq $IS_CURRENT_VERSION_ALPHA) { Write-Host "Current version is alpha: $IS_CURRENT_VERSION_ALPHA" }
-          if ($null -neq $SHOULD_INCREMENT) { Write-Host "Should increment: $SHOULD_INCREMENT" }
-          if ($null -neq $RELEVENT_COMMIT) { Write-Host "Relevant commit: $RELEVENT_COMMIT" }
-          if ($null -neq $IS_RELEVENT_COMMIT_TAGGED) { Write-Host "Relevant commit is tagged: $IS_RELEVENT_COMMIT_TAGGED" }
-          if ($null -neq $VERSION_INCREMENT) { Write-Host "Increment by: $VERSION_INCREMENT" }
-
-          # set the environment variables
-          if ($null -neq $SHOULD_INCREMENT) { "SHOULD_INCREMENT=$SHOULD_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
-          if ($null -neq $VERSION) { "VERSION=$VERSION" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
-          if ($null -neq $VERSION_INCREMENT) { "VERSION_INCREMENT=$VERSION_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
-
-      - name: Bump version
-        if: ${{ env.SHOULD_RELEASE == 'True' && env.SHOULD_INCREMENT == 'True' }}
-        id: semver
-        uses: nguyenvukhang/semver-increment@v1
-        with:
-          increment: ${{ env.VERSION_INCREMENT }}
-          identifier: 'alpha'
-          version-file: 'VERSION'
-          version-regex: '^(.*)'
-
-      - name: Return version
-        if: ${{ env.SHOULD_RELEASE == 'True' && env.SHOULD_INCREMENT == 'True' }}
-        shell: pwsh
-        run: |
-          "VERSION=${{ steps.semver.outputs.version }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-      
-      - name: Commit Version
-        if: ${{ env.SHOULD_RELEASE == 'True' }}
-        shell: pwsh
-        run: |
-          git config --global user.email "github@ktsu.dev"
-          git config --global user.name "GitHub Pipeline"
-          git pull
-          git add VERSION
-          git commit -m "[skip ci][bot] Update VERSION to ${{ env.VERSION }}"
-          git push
-
-          $PUSH_SUCCEEDED = $?
-          $RELEASE_HASH = (git rev-parse HEAD)
-          $SHOULD_RELEASE = $PUSH_SUCCEEDED
-
-          Write-Host "Push succeeded: $PUSH_SUCCEEDED"
-          Write-Host "Release hash: $RELEASE_HASH"
-          Write-Host "Should release: $SHOULD_RELEASE"
-
-          "PUSH_SUCCEEDED=$PUSH_SUCCEEDED" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-          "RELEASE_HASH=$RELEASE_HASH" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-          "SHOULD_RELEASE=$SHOULD_RELEASE" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Setup .NET Core SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            ${{ env.DOTNET_VERSION }}.x
-      
-      - name: Install dotnet-script
-        if: ${{ env.USE_DOTNET_SCRIPT == 'True' }}
-        run: dotnet tool install -g dotnet-script
-
-      - name: Build
-        shell: pwsh
-        run: dotnet build --configuration Release --verbosity normal --no-incremental -m:1
-
-      - name: Test
-        shell: pwsh
-        run: dotnet test --configuration Release --verbosity normal --no-build 
-
-      - name: Detect Dependencies
-        if: ${{ env.SHOULD_RELEASE == 'True' }}
-        uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
+        Write-Host "Is Main: $IS_MAIN"
+        Write-Host "Is Tagged: $IS_TAGGED"
+        Write-Host "Should Release: $SHOULD_RELEASE"
+        Write-Host "Use dotnet-script: $USE_DOTNET_SCRIPT"
+        Write-Host "Package Pattern: $PACKAGE_PATTERN"
+        Write-Host "Application Pattern: $APPLICATION_PATTERN"
         
-      - name: Package Libraries
-        if: ${{ env.SHOULD_RELEASE == 'True' }}
-        run: dotnet pack --include-source --configuration Release --output ${{ env.STAGING_PATH }} -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ env.RELEASE_HASH }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
+    - name: Configure Version
+      shell: pwsh
+      run: |
+        # read the current version from the VERSION file
+        $VERSION = (Get-Content -Path VERSION -Raw).Trim()
 
-      - name: Package Applications win-x64
-        if: ${{ env.SHOULD_RELEASE == 'True' }}
-        shell: pwsh
-        run: |
-          Remove-Item -Recurse -Force ${{ env.OUTPUT_PATH }}
-          Get-ChildItem -Recurse -Filter *.csproj | ForEach-Object {
-            $csproj = $_
-            $projName = [System.IO.Path]::GetFileNameWithoutExtension($csproj)
-            $outDir = "${{ env.OUTPUT_PATH }}/$projName"
-            $stageDir = "${{ env.STAGING_PATH }}"
-            $stageFile = "$stageDir/$projName-${{ env.VERSION }}.zip"
-            New-Item -Path $outDir -ItemType Directory -Force
-            New-Item -Path $stageDir -ItemType Directory -Force
-            dotnet publish $csproj --no-build --self-contained --configuration Release --runtime win-x64 --framework ${{ env.DOTNET_VERSION }} --output $outDir
-            Compress-Archive -Path $outDir/* -DestinationPath $stageFile
+        $IS_CURRENT_VERSION_ALPHA = $VERSION.Contains('alpha')
+        $IS_CURRENT_VERSION_TAGGED = ((git tag --list "v$VERSION").Length -gt 0) -OR ((git tag --list "$VERSION").Length -gt 0)
+        $SHOULD_INCREMENT = $IS_CURRENT_VERSION_TAGGED
+
+        if ($SHOULD_INCREMENT) {
+          # Get the last relevant commit that is not from a bot or application
+          $RELEVENT_COMMIT = git log -n 1 `
+            --committer='^(?!.*\[bot\]|GitHub|ProjectDirector|SyncFileContents).*$' `
+            --perl-regexp --format=format:%H `
+            -- '*.*' ':!.*' `
+            ':(icase,exclude)*.md' `
+            ':(icase,exclude)*.yml' `
+            ':(icase,exclude)*.yaml' `
+            ':(icase,exclude)*.sln' `
+            ':(icase,exclude)Directory.Build.*' `
+            ':(icase,exclude)*.*proj'
+          
+          $IS_RELEVENT_COMMIT_TAGGED = (git tag --contains $RELEVENT_COMMIT).Length -gt 0
+
+          $VERSION_INCREMENT = 'minor'
+          
+          if ($IS_RELEVENT_COMMIT_TAGGED) {
+            $VERSION_INCREMENT = 'patch'
           }
+          
+          if ($IS_CURRENT_VERSION_ALPHA) {
+            $VERSION_INCREMENT = 'prerelease'
+          }
+        }
 
-      - name: Publish Libraries to GitHub
-        if: ${{ env.SHOULD_RELEASE == 'True' && hashFiles(env.PACKAGE_PATTERN) != '' }}
-        run: dotnet nuget push ${{ env.PACKAGE_PATTERN }} --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
+        # Output the version information
+        if ($null -neq $VERSION) { Write-Host "Current version: $VERSION" }
+        if ($null -neq $IS_CURRENT_VERSION_TAGGED) { Write-Host "Current version is tagged: $IS_CURRENT_VERSION_TAGGED" }
+        if ($null -neq $IS_CURRENT_VERSION_ALPHA) { Write-Host "Current version is alpha: $IS_CURRENT_VERSION_ALPHA" }
+        if ($null -neq $SHOULD_INCREMENT) { Write-Host "Should increment: $SHOULD_INCREMENT" }
+        if ($null -neq $RELEVENT_COMMIT) { Write-Host "Relevant commit: $RELEVENT_COMMIT" }
+        if ($null -neq $IS_RELEVENT_COMMIT_TAGGED) { Write-Host "Relevant commit is tagged: $IS_RELEVENT_COMMIT_TAGGED" }
+        if ($null -neq $VERSION_INCREMENT) { Write-Host "Increment by: $VERSION_INCREMENT" }
+
+        # set the environment variables
+        if ($null -neq $SHOULD_INCREMENT) { "SHOULD_INCREMENT=$SHOULD_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
+        if ($null -neq $VERSION) { "VERSION=$VERSION" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
+        if ($null -neq $VERSION_INCREMENT) { "VERSION_INCREMENT=$VERSION_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
+
+    - name: Bump version
+      if: ${{ env.SHOULD_RELEASE == 'True' && env.SHOULD_INCREMENT == 'True' }}
+      id: semver
+      uses: nguyenvukhang/semver-increment@v1
+      with:
+        increment: ${{ env.VERSION_INCREMENT }}
+        identifier: 'alpha'
+        version-file: 'VERSION'
+        version-regex: '^(.*)'
+
+    - name: Return version
+      if: ${{ env.SHOULD_RELEASE == 'True' && env.SHOULD_INCREMENT == 'True' }}
+      shell: pwsh
+      run: |
+        "VERSION=${{ steps.semver.outputs.version }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+    
+    - name: Commit Version
+      if: ${{ env.SHOULD_RELEASE == 'True' }}
+      shell: pwsh
+      run: |
+        git config --global user.email "github@ktsu.dev"
+        git config --global user.name "GitHub Pipeline"
+        git pull
+        git add VERSION
+        git commit -m "[skip ci][bot] Update VERSION to ${{ env.VERSION }}"
+        git push
+
+        $PUSH_SUCCEEDED = $?
+        $RELEASE_HASH = (git rev-parse HEAD)
+        $SHOULD_RELEASE = $PUSH_SUCCEEDED
+
+        Write-Host "Push succeeded: $PUSH_SUCCEEDED"
+        Write-Host "Release hash: $RELEASE_HASH"
+        Write-Host "Should release: $SHOULD_RELEASE"
+
+        "PUSH_SUCCEEDED=$PUSH_SUCCEEDED" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "RELEASE_HASH=$RELEASE_HASH" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "SHOULD_RELEASE=$SHOULD_RELEASE" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          ${{ env.DOTNET_VERSION }}.x
+    
+    - name: Install dotnet-script
+      if: ${{ env.USE_DOTNET_SCRIPT == 'True' }}
+      run: dotnet tool install -g dotnet-script
+
+    - name: Build
+      shell: pwsh
+      run: dotnet build --configuration Release --verbosity normal --no-incremental -m:1
+
+    - name: Test
+      shell: pwsh
+      run: dotnet test --configuration Release --verbosity normal --no-build 
+
+    - name: Detect Dependencies
+      if: ${{ env.SHOULD_RELEASE == 'True' }}
+      uses: advanced-security/component-detection-dependency-submission-action@v0.0.2
       
-      - name: Publish Libraries to NuGet
-        if: ${{ env.SHOULD_RELEASE == 'True' && hashFiles(env.PACKAGE_PATTERN) != '' }}
-        run: dotnet nuget push ${{ env.PACKAGE_PATTERN }} --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+    - name: Package Libraries
+      if: ${{ env.SHOULD_RELEASE == 'True' }}
+      run: dotnet pack --include-source --configuration Release --output ${{ env.STAGING_PATH }} -p:SymbolPackageFormat=snupkg -p:PackageLicenseFile=LICENSE -p:PackageReadmeFile=README.md -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} -p:RepositoryCommit=${{ env.RELEASE_HASH }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }} -p:IncludeContentInPack=true
 
-      - name: Release
-        if: ${{ env.SHOULD_RELEASE == 'True' }}
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: "${{ env.PACKAGE_PATTERN }},${{ env.APPLICATION_PATTERN }}"
-          tag: v${{ env.VERSION }}
-          commit: ${{ env.RELEASE_HASH }}
-          allowUpdates: false
-          skipIfReleaseExists: true
-          omitBody: true
-          generateReleaseNotes: true
-          replacesArtifacts: false
-          makeLatest: true
+    - name: Package Applications win-x64
+      if: ${{ env.SHOULD_RELEASE == 'True' }}
+      shell: pwsh
+      run: |
+        Remove-Item -Recurse -Force ${{ env.OUTPUT_PATH }}
+        Get-ChildItem -Recurse -Filter *.csproj | ForEach-Object {
+          $csproj = $_
+          $projName = [System.IO.Path]::GetFileNameWithoutExtension($csproj)
+          $outDir = "${{ env.OUTPUT_PATH }}/$projName"
+          $stageDir = "${{ env.STAGING_PATH }}"
+          $stageFile = "$stageDir/$projName-${{ env.VERSION }}.zip"
+          New-Item -Path $outDir -ItemType Directory -Force
+          New-Item -Path $stageDir -ItemType Directory -Force
+          dotnet publish $csproj --no-build --self-contained --configuration Release --runtime win-x64 --framework ${{ env.DOTNET_VERSION }} --output $outDir
+          Compress-Archive -Path $outDir/* -DestinationPath $stageFile
+        }
+
+    - name: Publish Libraries to GitHub
+      if: ${{ env.SHOULD_RELEASE == 'True' && hashFiles(env.PACKAGE_PATTERN) != '' }}
+      run: dotnet nuget push ${{ env.PACKAGE_PATTERN }} --api-key ${{ secrets.GITHUB_TOKEN }} --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --skip-duplicate
+    
+    - name: Publish Libraries to NuGet
+      if: ${{ env.SHOULD_RELEASE == 'True' && hashFiles(env.PACKAGE_PATTERN) != '' }}
+      run: dotnet nuget push ${{ env.PACKAGE_PATTERN }} --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+    - name: Release
+      if: ${{ env.SHOULD_RELEASE == 'True' }}
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "${{ env.PACKAGE_PATTERN }},${{ env.APPLICATION_PATTERN }}"
+        tag: v${{ env.VERSION }}
+        commit: ${{ env.RELEASE_HASH }}
+        allowUpdates: false
+        skipIfReleaseExists: true
+        omitBody: true
+        generateReleaseNotes: true
+        replacesArtifacts: false
+        makeLatest: true
