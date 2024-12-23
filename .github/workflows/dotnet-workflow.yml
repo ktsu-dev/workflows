@@ -29,7 +29,8 @@ jobs:
         $IS_TAGGED = (git show-ref --tags -d | Out-String).Contains("${{ github.sha }}")
         $SHOULD_RELEASE = ($IS_MAIN -AND -NOT $IS_TAGGED)
         $USE_DOTNET_SCRIPT = (Get-ChildItem -Recurse -Filter *.csx).Count -gt 0
-        $PACKAGE_PATTERN = Join-Path -Path "${{ github.workspace }}" -ChildPath "${{ env.STAGING_PATH }}" -AdditionalChildPath "*.*nupkg"
+        $PACKAGE_PATTERN = Join-Path -Path "${{ github.workspace }}" -ChildPath "${{ env.STAGING_PATH }}" -AdditionalChildPath "*.nupkg"
+        $SYMBOLS_PATTERN = Join-Path -Path "${{ github.workspace }}" -ChildPath "${{ env.STAGING_PATH }}" -AdditionalChildPath "*.snupkg"
         $APPLICATION_PATTERN = Join-Path -Path "${{ github.workspace }}" -ChildPath "${{ env.STAGING_PATH }}" -AdditionalChildPath "*.zip"
 
         "IS_MAIN=$IS_MAIN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
@@ -37,6 +38,7 @@ jobs:
         "SHOULD_RELEASE=$SHOULD_RELEASE" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         "USE_DOTNET_SCRIPT=$USE_DOTNET_SCRIPT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         "PACKAGE_PATTERN=$PACKAGE_PATTERN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        "SYMBOLS_PATTERN=$SYMBOLS_PATTERN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
         "APPLICATION_PATTERN=$APPLICATION_PATTERN" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
 
         Write-Host "Is Main: $IS_MAIN"
@@ -44,6 +46,7 @@ jobs:
         Write-Host "Should Release: $SHOULD_RELEASE"
         Write-Host "Use dotnet-script: $USE_DOTNET_SCRIPT"
         Write-Host "Package Pattern: $PACKAGE_PATTERN"
+        Write-Host "Symbols Pattern: $SYMBOLS_PATTERN"
         Write-Host "Application Pattern: $APPLICATION_PATTERN"
         
     - name: Configure Version
@@ -196,7 +199,7 @@ jobs:
       if: ${{ env.SHOULD_RELEASE == 'True' }}
       uses: ncipollo/release-action@v1
       with:
-        artifacts: "${{ env.PACKAGE_PATTERN }},${{ env.APPLICATION_PATTERN }}"
+        artifacts: "${{ env.PACKAGE_PATTERN }},${{ env.SYMBOLS_PATTERN }},${{ env.APPLICATION_PATTERN }}"
         tag: v${{ env.VERSION }}
         commit: ${{ env.RELEASE_HASH }}
         allowUpdates: false
