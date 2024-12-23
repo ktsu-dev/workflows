@@ -178,7 +178,7 @@ jobs:
           $stageFile = "$stageDir/$projName-${{ env.VERSION }}.zip"
           New-Item -Path $outDir -ItemType Directory -Force
           New-Item -Path $stageDir -ItemType Directory -Force
-          dotnet publish $csproj --no-build --self-contained --configuration Release --framework net${{ env.DOTNET_VERSION }} --output $outDir
+          dotnet publish $csproj --no-build --configuration Release --framework net${{ env.DOTNET_VERSION }} --output $outDir
           Compress-Archive -Path $outDir/* -DestinationPath $stageFile
         }
 
