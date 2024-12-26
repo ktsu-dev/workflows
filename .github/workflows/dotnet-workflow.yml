@@ -48,6 +48,7 @@ jobs:
         Write-Host "Package Pattern: $PACKAGE_PATTERN"
         Write-Host "Symbols Pattern: $SYMBOLS_PATTERN"
         Write-Host "Application Pattern: $APPLICATION_PATTERN"
+        $global:LASTEXITCODE = 0
         
     - name: Configure Version
       shell: pwsh
@@ -98,6 +99,8 @@ jobs:
         if ($null -ne $SHOULD_INCREMENT) { "SHOULD_INCREMENT=$SHOULD_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
         if ($null -ne $VERSION) { "VERSION=$VERSION" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
         if ($null -ne $VERSION_INCREMENT) { "VERSION_INCREMENT=$VERSION_INCREMENT" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append }
+
+        $global:LASTEXITCODE = 0
 
     - name: Bump version
       if: ${{ env.SHOULD_RELEASE == 'True' && env.SHOULD_INCREMENT == 'True' }}
