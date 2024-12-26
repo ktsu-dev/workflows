@@ -166,7 +166,7 @@ jobs:
       shell: pwsh
       run: dotnet pack --configuration Release --output ${{ github.workspace }}/${{ env.STAGING_PATH }} -p:PackageProjectUrl=${{ github.server_url }}/${{ github.repository }}
 
-    - name: Package Applications win-x64
+    - name: Package Applications
       if: ${{ env.SHOULD_RELEASE == 'True' }}
       shell: pwsh
       run: |
