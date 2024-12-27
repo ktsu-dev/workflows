@@ -121,7 +121,7 @@ jobs:
             $NEW_PRERELEASE = $LAST_VERSION_PRERELEASE + 1
             $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$LAST_VERSION_PATCH-pre.$NEW_PRERELEASE"
           }
-          else if ($VERSION_INCREMENT -eq 'patch') {
+          elseif ($VERSION_INCREMENT -eq 'patch') {
             $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$LAST_VERSION_PATCH"
           }
         }
@@ -130,7 +130,7 @@ jobs:
             $NEW_PATCH = $LAST_VERSION_PATCH + 1
             $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$NEW_PATCH-pre.1"
           }
-          else if ($VERSION_INCREMENT -eq 'patch') {
+          elseif ($VERSION_INCREMENT -eq 'patch') {
             $NEW_PATCH = $LAST_VERSION_PATCH + 1
             $VERSION = "$LAST_VERSION_MAJOR.$LAST_VERSION_MINOR.$NEW_PATCH"
           }
