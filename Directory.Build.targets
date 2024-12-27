@@ -1,0 +1,83 @@
+<Project>
+  <PropertyGroup>
+    <DirectoryBuildTargetsFilePath>$(MSBuildThisFileFullPath)</DirectoryBuildTargetsFilePath>
+    <DirectoryBuildTargetsFileName>$([System.IO.Path]::GetFileName($(DirectoryBuildTargetsFilePath)))</DirectoryBuildTargetsFileName>
+
+    <IsTestProject Condition="$(MSBuildProjectName.EndsWith('.Test'))">true</IsTestProject>
+
+    <IsExecutable>false</IsExecutable>
+    <IsExecutable Condition="$(OutputType) == 'Exe' Or $(OutputType) == 'WinExe'">true</IsExecutable>
+
+    <IsLibrary>false</IsLibrary>
+    <IsLibrary Condition="$(OutputType) == 'Library' And !$(IsTestProject)">true</IsLibrary>
+
+    <IsPrimaryProject>false</IsPrimaryProject>
+    <IsPrimaryProject Condition="$(MSBuildProjectName) == $(PrimaryProjectName)">true</IsPrimaryProject>
+
+    <IsPublishable Condition="$(IsExecutable)">true</IsPublishable>
+    <IsPackable Condition="$(IsLibrary)">true</IsPackable>
+
+    <NoWarn Condition="$(IsTestProject)">$(NoWarn);CS1591;CA2225;IDE0022;IDE0058;CA1305;CA5394;</NoWarn>
+    <!-- CS1591: Missing XML comment for publicly visible type or member -->
+    <!-- CA2225: Operator overloads have named alternates -->
+    <!-- IDE0022: Use expression body for methods -->
+    <!-- IDE0058: Expression value is never used -->
+    <!-- CA1305: Specify IFormatProvider -->
+    <!-- CA5394: Do not use insecure randomness -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
+    <InternalsVisibleTo Condition="!$(IsTestProject)" Include="$(AssemblyName).Test" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(IsTestProject)">
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+    <ProjectReference Include="$(SolutionDir)\$(SolutionName)\$(SolutionName).csproj" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="MSTest" Version="3.7.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(IsPrimaryProject)">
+    <None Include="$(DirectoryBuildPropsFilePath)" Condition="Exists('$(DirectoryBuildPropsFilePath)')" Link="_Build\$(DirectoryBuildPropsFileName)" />
+    <None Include="$(DirectoryBuildTargetsFilePath)" Condition="Exists('$(DirectoryBuildTargetsFilePath)')" Link="_Build\$(DirectoryBuildTargetsFileName)" />
+
+    <None Include="$(AuthorsFilePath)" Condition="Exists('$(AuthorsFilePath)')" Pack="true" PackagePath="\" Link="_Data\$(AuthorsFileName)" />
+    <None Include="$(DescriptionFilePath)" Condition="Exists('$(DescriptionFilePath)')" Pack="true" PackagePath="\" Link="_Data\$(DescriptionFileName)" />
+    <None Include="$(LicenseFilePath)" Condition="Exists('$(LicenseFilePath)')" Pack="true" PackagePath="\" Link="_Data\$(LicenseFileName)" />
+    <None Include="$(ChangelogFilePath)" Condition="Exists('$(ChangelogFilePath)')" Pack="true" PackagePath="\" Link="_Data\$(ChangelogFileName)" />
+    <None Include="$(ReadmeFilePath)" Condition="Exists('$(ReadmeFilePath)')" Pack="true" PackagePath="\" Link="_Data\$(ReadmeFileName)" />
+    <None Include="$(VersionFilePath)" Condition="Exists('$(VersionFilePath)')" Pack="true" PackagePath="\" Link="_Data\$(VersionFileName)" />
+    <None Include="$(IconFilePath)" Condition="Exists('$(IconFilePath)')" Pack="true" PackagePath="\" Link="_Data\$(IconFileName)" />
+  </ItemGroup>
+
+  <Target Name="GenerateMITLicense" BeforeTargets="Build">
+    <WriteLinesToFile
+        File="$(LicenseFilePath)"
+        Lines='MIT License
+
+$(Copyright)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the &quot;Software&quot;), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+'
+        Overwrite="true"
+        Encoding="UTF-8" />
+  </Target>
+
+</Project>
