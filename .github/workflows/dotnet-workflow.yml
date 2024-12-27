@@ -182,7 +182,8 @@ jobs:
         $PROJECT_URL = "${{ github.server_url }}/${{ github.repository }}"
         $AUTHORS_URL = "${{ github.server_url }}/${{ github.repository_owner }}"
 
-        $LICENSE = @"MIT License
+        $LICENSE = @"
+        MIT License
 
         $PROJECT_URL
 
